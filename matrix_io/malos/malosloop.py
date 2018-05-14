@@ -9,7 +9,8 @@ class MalosLoop:
 
     def configure_driver(self, address, base_port, config, data_callback, error_callback=None):
         self.drivers.append(asyncio.ensure_future(
-            run_driver(address, base_port, config, data_callback, error_callback)))
+            run_driver(address, base_port, config, data_callback, error_callback),
+            loop=self.loop))
 
     def run(self):
         self.loop.run_forever()

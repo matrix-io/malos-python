@@ -21,6 +21,7 @@ Examples:
     malosclient --malos-host 192.168.0.101 IMU_PORT
 
 """
+import asyncio
 import sys
 import math
 from docopt import docopt
@@ -42,19 +43,24 @@ DRIVER_PROTOS = {
 }
 
 
-
-def get_data_decoder(driver):
+def get_data_handler(driver):
     """ Obtains a function that prints decoded protos to STDOUT """
 
-    def micarray_decoder(msg):
-        dt = io_pb2.MicArrayParams.FromString(msg[0])
+    async def micarray_decoder(msg):
+        dt = io_pb2.MicArrayParams.FromString(msg)
         print('Azimutal angle (deg): {}'.format(dt.azimutal_angle * 180.0 / math.pi))
         print('Polar angle (deg): {}'.format(dt.polar_angle * 180.0 / math.pi))
 
+        # Simulate some I/O operation
+        await asyncio.sleep(1.0)
+
 
     def wrap(d):
-        def data_handler(msg):
-            print(d.FromString(msg[0]))
+        async def data_handler(msg):
+            print(d.FromString(msg))
+
+            # Simulate some I/O operation
+            await asyncio.sleep(1.0)
         return data_handler
 
     if driver == 'MICARRAY_ALSA_PORT':
@@ -63,9 +69,10 @@ def get_data_decoder(driver):
     return wrap(DRIVER_PROTOS[driver])
 
 
-def error_handler(msg):
+async def error_handler(msg):
     """ STDERR Error message printer """
     print(msg, file=sys.stderr)
+    await asyncio.sleep(1.0)
 
 
 def main():
@@ -109,7 +116,7 @@ def main():
         options['--malos-host'],
         driver_port,
         driver_config,
-        get_data_decoder(options['<driver>']),
+        get_data_handler(options['<driver>']),
         error_handler)
 
     try:

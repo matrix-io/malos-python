@@ -130,7 +130,7 @@ async def error_port(address, base_port, ctx, callback):
 
     while True:
         msg = await sock.recv_multipart()
-        callback(msg)
+        await callback(msg)
 
 
 async def data_port(address, base_port, ctx, callback):
@@ -158,7 +158,7 @@ async def data_port(address, base_port, ctx, callback):
 
     while True:
         msg = await sock.recv_multipart()
-        callback(msg)
+        await callback(msg[0])
 
 
 async def run_driver(address, base_port, config_proto, data_callback, error_callback):
@@ -174,7 +174,7 @@ async def run_driver(address, base_port, config_proto, data_callback, error_call
     error = asyncio.ensure_future(error_port(address, base_port, context, error_callback))
     try:
         # Run the data update channel
-        msg = await data_port(address, base_port, context, data_callback)
+        await data_port(address, base_port, context, data_callback)
     except asyncio.CancelledError:
         kalive.cancel()
         error.cancel()
