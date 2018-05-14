@@ -37,6 +37,7 @@ To use the MALOS loop in your code do the following:
 
 ::
 
+    import asyncio
     import sys
 
     from matrix_io.malos import malosloop
@@ -45,14 +46,17 @@ To use the MALOS loop in your code do the following:
     from matrix_io.proto.malos.v1 import driver_pb2
     from matrix_io.proto.malos.v1 import sense_pb2, io_pb2
 
-    def imu_data(msg):
-       print(sense_pb2.Imu().FromString(msg[0])
+    async def imu_data(msg):
+       print(sense_pb2.Imu().FromString(msg)
+       await asyncio.sleep(1.0)
 
-    def uv_data(msg):
-       print(sense_pb2.UV().FromString(msg[0])
+    async def uv_data(msg):
+       print(sense_pb2.UV().FromString(msg)
+       await asyncio.sleep(1.0)
 
-    def error_handler(msg)
+    async def error_handler(msg)
        print('Error: %s' % msg, file=sys.stderr)
+       await asyncio.sleep(1.0)
 
     # Driver configuration
     driver_config = driver_pb2.DriverConfig()
