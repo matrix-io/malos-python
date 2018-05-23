@@ -12,6 +12,21 @@ This package is available on `pypi`_ so you can:
  pip install matrix-io-malos
 
 
+Testing
+---------
+
+Install `coverage`, `pytest` and `pytest-cov`:
+
+::
+
+    pip install coverage pytest pytest-cov
+
+Run:
+
+::
+
+    python setup.py test
+
 Running the CLI client
 ----------------------
 
