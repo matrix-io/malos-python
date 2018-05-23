@@ -1,3 +1,6 @@
 .idea/
 matrix_io_malos.egg-info/
 venv/
+dist/
+build/
+.pytest_cache
