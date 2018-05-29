@@ -84,8 +84,9 @@ class DriverTest (unittest.TestCase):
         from matrix_io.malos.drivers import keep_alive_port
         from matrix_io.malos.drivers import error_port
         from matrix_io.malos.drivers import data_port
+        loop = asyncio.get_event_loop()
         try:
-            _run(run_driver(self.host, self.port, driver_config, async_print, async_print))
+            _run(run_driver(loop, self.host, self.port, driver_config, async_print, async_print))
             self.fail("run_driver should have raised exception")
         except Exception:
             driver_port.assert_called_with(self.host, self.port, ANY, driver_config)
