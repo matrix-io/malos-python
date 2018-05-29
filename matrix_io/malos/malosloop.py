@@ -29,8 +29,6 @@ class MalosLoop:
             except Exception as e:
                 print("Unexpected exception: ", e)
 
-        #malosclient --malos-host 10.0.2.19 IMU_PORT
-
         # Cancel driver children
         self.loop.run_until_complete(self.loop.shutdown_asyncgens())
         # Workaround: cancel run_driver. If this line is removed,
