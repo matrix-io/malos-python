@@ -102,7 +102,7 @@ async def keep_alive_port(address, base_port, ctx, delay=5.0):
             await asyncio.sleep(delay)
         except asyncio.CancelledError:
             # Exit gracefully
-            break
+            return
 
 
 async def error_port(address, base_port, ctx, callback):
@@ -129,8 +129,11 @@ async def error_port(address, base_port, ctx, callback):
     sock.setsockopt(zmq.SUBSCRIBE, b'')
 
     while True:
-        msg = await sock.recv_multipart()
-        await callback(msg)
+        try:
+            msg = await sock.recv_multipart()
+            await callback(msg)
+        except asyncio.CancelledError:
+            return
 
 
 async def data_port(address, base_port, ctx, callback):
@@ -157,24 +160,32 @@ async def data_port(address, base_port, ctx, callback):
     sock.setsockopt(zmq.SUBSCRIBE, b'')
 
     while True:
-        msg = await sock.recv_multipart()
-        await callback(msg[0])
+        try:
+            msg = await sock.recv_multipart()
+            await callback(msg[0])
+        except asyncio.CancelledError:
+            return
 
-
-async def run_driver(address, base_port, config_proto, data_callback, error_callback):
+async def run_driver(loop, address, base_port, config_proto, data_callback, error_callback):
     context = Context()
 
     # Configure the MALOS driver first
     driver_port(address, base_port, context, config_proto)
 
-    # Run the keep-alive channel
-    kalive = asyncio.ensure_future(keep_alive_port(address, base_port, context))
+    # Keep-alive channel coroutine
+    kalive = keep_alive_port(address, base_port, context)
 
-    # Run the error channel
-    error = asyncio.ensure_future(error_port(address, base_port, context, error_callback))
+    # Error channel coroutine
+    error = error_port(address, base_port, context, error_callback)
+
+    # Data channel coroutine
+    data = data_port(address, base_port, context, data_callback)
+
     try:
-        # Run the data update channel
-        await data_port(address, base_port, context, data_callback)
-    except asyncio.CancelledError:
-        kalive.cancel()
-        error.cancel()
+        # Run keep-alive, error and data coroutines
+        await asyncio.gather(kalive, error, data, loop=loop, return_exceptions=False)
+    except:
+        # Make loop.run_forever() loop break
+        loop.stop()
+        raise
+
