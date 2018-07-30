@@ -4,8 +4,9 @@ import codecs
 import os
 from subprocess import call
 
-from setuptools import Command, setup
-from matrix_io.malos import __version__
+from setuptools import Command, setup, find_packages
+
+__version__ = '0.0.4'
 
 
 PKG_ROOT = os.path.abspath(os.path.dirname(__file__))
@@ -49,10 +50,10 @@ setup(
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
     ],
-    packages=['matrix_io.malos'],
+    packages=find_packages(),
     install_requires=[
         'docopt==0.6.2',
-        'matrix_io-proto==0.0.17',
+        'matrix-io-proto==0.0.25',
         'pyzmq==17.0.0'
     ],
     extras_require={
@@ -66,6 +67,7 @@ setup(
     namespace_packages=[
         'matrix_io',
     ],
+    zip_safe=False,
     cmdclass={
         'test': RunTests
     },

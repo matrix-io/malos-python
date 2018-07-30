@@ -1,2 +1,6 @@
 .idea/
 matrix_io_malos.egg-info/
+venv
+build
+dist
+**/__pycache__
