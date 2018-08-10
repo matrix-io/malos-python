@@ -1,15 +1,16 @@
 MATRIXIO MALOS Libs
 ===================
-`Python`_ tiny set of libraries for communicating with `MATRIX-MALOS`_ services.
+`Python`_ tiny set of libraries for communicating with MATRIX-MALOS services.
 
 Installing
 ----------
 
-This package is available on `pypi`_ so you can:
+This package is NOT available on `pypi`_ anymore, so you create a package and install it:
 
 ::
 
- pip install matrix-io-malos
+ python setup.py sdist
+ pip install ./dist/matrix_io-malos-0.0.5.tar.gz
 
 
 Running the CLI client
@@ -78,7 +79,6 @@ To use the MALOS loop in your code do the following:
 .. _0MQ: http://zeromq.org/
 .. _Python: https://www.python.org/
 .. _virtualenv: https://virtualenv.pypa.io/en/stable/
-.. _matrixio-protos-0.0.17: https://bitbucket.org/admobilize/vision-agent/downloads/matrix_io-proto-0.0.17.tar.gz
-.. _MATRIX-MALOS: https://github.com/matrix-io/matrix-creator-malos
-.. _pypi: https://pypi.org/project/matrix-io-malos/
+.. _matrixio-protos-0.0.25: https://pypi.org/project/matrix-io-proto
+.. _pypi: https://pypi.org/
 
