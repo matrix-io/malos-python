@@ -32,7 +32,6 @@ from matrix_io.proto.malos.v1 import driver_pb2
 from matrix_io.proto.malos.v1 import sense_pb2, io_pb2
 from . import drivers, malosloop
 
-
 """ Driver to proto message mappings """
 DRIVER_PROTOS = {
     'HUMIDITY_PORT': sense_pb2.Humidity(),

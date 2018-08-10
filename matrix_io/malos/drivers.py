@@ -129,8 +129,11 @@ async def error_port(address, base_port, ctx, callback):
     sock.setsockopt(zmq.SUBSCRIBE, b'')
 
     while True:
-        msg = await sock.recv_multipart()
-        await callback(msg)
+        try:
+            msg = await sock.recv_multipart()
+            await callback(msg)
+        except asyncio.CancelledError:
+            break
 
 
 async def data_port(address, base_port, ctx, callback):
@@ -157,8 +160,11 @@ async def data_port(address, base_port, ctx, callback):
     sock.setsockopt(zmq.SUBSCRIBE, b'')
 
     while True:
-        msg = await sock.recv_multipart()
-        await callback(msg[0])
+        try:
+            msg = await sock.recv_multipart()
+            await callback(msg[0])
+        except asyncio.CancelledError:
+            break
 
 
 async def run_driver(address, base_port, config_proto, data_callback, error_callback):
