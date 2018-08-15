@@ -10,7 +10,7 @@ This package is NOT available on `pypi`_ anymore, so you create a package and in
 ::
 
  python setup.py sdist
- pip install ./dist/matrix_io-malos-0.0.5.tar.gz
+ pip install ./dist/matrix_io-malos-0.1.0.tar.gz
 
 
 Running the CLI client
@@ -30,6 +30,8 @@ your MALOS service right away.
     # Get HUMIDITY data to STDOUT from a remotely running MALOS service
     malosclient -h 192.168.0.100 HUMIDITY_PORT
 
+    # Get FACE detection data using a serialized driver config file
+    malosclient --driver-config-file ~/driver_config.proto FACE_PORT
 
 Using the MalosLoop
 -------------------
@@ -41,39 +43,59 @@ To use the MALOS loop in your code do the following:
     import asyncio
     import sys
 
-    from matrix_io.malos import malosloop
-    from matrix_io.malos.drivers import IMU_PORT, UV_PORT
-
+    from matrix_io.malos.driver import IMU_PORT, UV_PORT
     from matrix_io.proto.malos.v1 import driver_pb2
-    from matrix_io.proto.malos.v1 import sense_pb2, io_pb2
+    from matrix_io.proto.malos.v1 import sense_pb2
 
-    async def imu_data(msg):
-       print(sense_pb2.Imu().FromString(msg)
-       await asyncio.sleep(1.0)
+    from matrix_io.malos.driver import MalosDriver
 
-    async def uv_data(msg):
-       print(sense_pb2.UV().FromString(msg)
-       await asyncio.sleep(1.0)
 
-    async def error_handler(msg)
-       print('Error: %s' % msg, file=sys.stderr)
-       await asyncio.sleep(1.0)
+    async def imu_data(imu_driver):
+        async for msg in imu_driver.get_data():
+            print(sense_pb2.Imu().FromString(msg))
+            await asyncio.sleep(1.0)
+
+
+    async def uv_data(uv_driver):
+        async for msg in uv_driver.get_data():
+            print(sense_pb2.UV().FromString(msg))
+            await asyncio.sleep(1.0)
+
+
+    async def error_handler(driver):
+        async for msg in driver.get_error():
+            print('Error: %s' % msg, file=sys.stderr)
+            await asyncio.sleep(1.0)
+
 
     # Driver configuration
     driver_config = driver_pb2.DriverConfig()
 
-    # Initialize the MalosLoop and the desired drivers
-    malos = malosloop.MalosLoop()
-    malos.configure_driver('localhost', IMU_PORT, driver_config, imu_data, error_handler)
-    malos.configure_driver('localhost', UV_PORT, driver_config, uv_data, error_handler)
+    # Create the drivers
+    imu_driver = MalosDriver('localhost', IMU_PORT, driver_config)
+    uv_driver = MalosDriver('localhost', UV_PORT, driver_config)
+
+    # Create loop and initialize keep-alive
+    loop = asyncio.get_event_loop()
+    loop.create_task(imu_driver.start_keep_alive())
+    loop.create_task(uv_driver.start_keep_alive())
+
+    # Initialize data and error handlers
+    loop.create_task(imu_data(imu_driver))
+    loop.create_task(uv_data(uv_driver))
+    loop.create_task(error_handler(imu_driver))
+    loop.create_task(error_handler(uv_driver))
 
     try:
-        malos.run()
+        loop.run_forever()
     except KeyboardInterrupt:
         print('Shutting down. Bye, bye !', file=sys.stderr)
     finally:
-        malos.stop()
+        loop.stop()
+        asyncio.gather(*asyncio.Task.all_tasks()).cancel()
 
+        loop.run_until_complete(loop.shutdown_asyncgens())
+        loop.close()
 
 
 .. _0MQ: http://zeromq.org/
