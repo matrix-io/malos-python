@@ -33,10 +33,10 @@ your MALOS service right away.
     # Get FACE detection data using a serialized driver config file
     malosclient --driver-config-file ~/driver_config.proto FACE_PORT
 
-Using the MalosLoop
--------------------
+Using the MalosDriver
+---------------------
 
-To use the MALOS loop in your code do the following:
+To use the MALOS driver in your code do the following:
 
 ::
 
