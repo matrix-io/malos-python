@@ -47,7 +47,6 @@ from matrix_io.proto.malos.v1 import sense_pb2, io_pb2
 from matrix_io.proto.vision.v1 import vision_pb2
 
 from matrix_io.malos import driver
-
 """ Driver to proto message mappings """
 DRIVER_PROTOS = {
     'HUMIDITY': sense_pb2.Humidity(),
@@ -64,8 +63,10 @@ async def data_handler(malos_driver, driver_name):
         proto_msg = DRIVER_PROTOS[driver_name].FromString(data)
 
         if driver_name == 'MICARRAY_ALSA':
-            print('Azimuthal angle (deg): {}'.format(proto_msg.azimutal_angle * 180.0 / math.pi))
-            print('Polar angle (deg): {}'.format(proto_msg.polar_angle * 180.0 / math.pi))
+            print('Azimuthal angle (deg): {}'.format(
+                proto_msg.azimutal_angle * 180.0 / math.pi))
+            print('Polar angle (deg): {}'.format(
+                proto_msg.polar_angle * 180.0 / math.pi))
         else:
             print(proto_msg)
 
@@ -99,8 +100,10 @@ def main():
     try:
         driver_port = getattr(driver, '{}_PORT'.format(driver_name))
     except AttributeError:
-        print("Driver '%s' is not valid, try any of: IMU, HUMIDITY, PRESSURE,"
-              " UV, MICARRAY_ALSA" % options['<driver>'], file=sys.stderr)
+        print(
+            "Driver '%s' is not valid, try any of: IMU, HUMIDITY, PRESSURE,"
+            " UV, MICARRAY_ALSA" % options['<driver>'],
+            file=sys.stderr)
         sys.exit(1)
 
     # Sanity checks on driver config
@@ -124,7 +127,9 @@ def main():
 
     if options['--driver-config-file'] is not None:
         try:
-            file_content = open(os.path.expanduser(options['--driver-config-file']), 'rb').read()
+            file_content = open(
+                os.path.expanduser(options['--driver-config-file']),
+                'rb').read()
         # @TODO (heitorgo, maciekrb) let's improve for specific exceptions here
         except Exception as err:
             print("Failed to load driver config file.", file=sys.stderr)
@@ -132,10 +137,8 @@ def main():
         else:
             driver_config.ParseFromString(file_content)
 
-    malos_driver = driver.MalosDriver(
-        options['--malos-host'],
-        driver_port,
-        driver_config)
+    malos_driver = driver.MalosDriver(options['--malos-host'], driver_port,
+                                      driver_config)
 
     loop = asyncio.get_event_loop()
 
