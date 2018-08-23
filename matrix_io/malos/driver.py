@@ -17,7 +17,7 @@ Everloop with port 20021.
 Pressure with port 20025.
 UV with port 20029.
 MicArray_Alsa with port 20037.
-FACE with port 60001
+VISION with port 60001
 
 Each port reserves a range of 4 ports that are used for a driver:
 
@@ -40,18 +40,20 @@ EVERLOOP_PORT = 20021
 PRESSURE_PORT = 20025
 UV_PORT = 20029
 MICARRAY_ALSA_PORT = 20037
-FACE_PORT = 60001
+VISION_PORT = 60001
 
 
 class MalosDriver(object):
+    """ Coroutine based MALOS manager """
 
     def __init__(self, address, base_port, config_proto):
         """
         Constructor
 
-        :param address: IP address of the device exposing the MALOS 0MQ sockets
-        :param base_port: desired base port
-        :param config_proto: a driver.proto containing configuration for the driver
+        Args:
+            address: IP address of the device exposing the MALOS 0MQ sockets
+            base_port: MALOS base port to use, see list of base ports above.
+            config_proto: a driver.proto containing configuration for the driver
         """
         self.address = address
         self.base_port = base_port
@@ -65,14 +67,17 @@ class MalosDriver(object):
         """
         MALOS configuration
 
-        Uses the base port and accepts a configuration proto, the driver.proto
-        to configure the driver.
+        It sends the provided configuration proto, the driver.proto, to the
+        MALOS configuration port to configure the driver.
 
         Details about the proto structure can be found here:
         https://github.com/matrix-io/protocol-buffers/blob/master/malos/driver.proto
 
         Args:
-        :param config_proto: a driver.proto containing configuration for the driver
+            config_proto: a driver.proto containing configuration for the driver
+
+        Returns:
+            None
         """
 
         # Set up socket as a push
@@ -89,31 +94,30 @@ class MalosDriver(object):
         """
         MALOS keep-alive starter
 
-        Connects to the corresponding keep-alive port (base_port +1) given the desired
-        base_port. The keep alive port will run as long as get_data is yielding
-        messages from 0MQ.
+        Connects to the corresponding keep-alive port (base_port +1) given the
+        desired base_port. We send keep alive pings so MALOS keeps sampling the
+        data from the sensors and we can keep yielding with get_data.
 
         Args:
-        :param delay: delay between pings
-        """
-        # Set up socket as a push
-        sock = self.ctx.socket(zmq.PUSH)
+            delay: delay between pings
 
-        # Connect to the keep alive port to the sensor port from the function args + 1
+        Yields:
+            Doesn't yield anything
+        """
+        sock = self.ctx.socket(zmq.PUSH)
         sock.connect('tcp://{0}:{1}'.format(self.address, self.base_port + 1))
 
-        # If the keep-alive pings stop, MALOS will stop the driver and stop sending
-        # updates. Pings are useful to prevent blocked applications from keeping
-        # a MALOS driver busy.
+        # If the keep-alive pings stop, MALOS will stop the driver and stop
+        # sending updates. Pings are useful to prevent blocked applications
+        # from keeping a MALOS driver busy.
         while True:
             try:
-                # Ping with empty string to let the drive know we're still listening
+                # An empty string is enough to let the driver know we're still
+                # listening
                 await sock.send_string('')
-
-                # Delay between next ping
                 await asyncio.sleep(delay)
             except asyncio.CancelledError:
-                # Exit gracefully
+                # Exit gracefully when cancelled
                 break
 
     async def get_error(self):
@@ -123,19 +127,13 @@ class MalosDriver(object):
         Connects to the corresponding error port (base_port +2) given the desired
         base_port and yields messages.
 
-        Args:
-            None
-
-        :return Error string
+        Yields:
+            Error string when a MALOS error is received
         """
-
-        # Set up socket as a subscription
         sock = self.ctx.socket(zmq.SUB)
-
-        # Connect to the base sensor port provided in the args + 2 for the error port
         sock.connect('tcp://{0}:{1}'.format(self.address, self.base_port + 2))
 
-        # Set socket options to subscribe and send off en empty string to let it know we're ready
+        # We send an empty message to let it know we're ready
         sock.setsockopt(zmq.SUBSCRIBE, b'')
 
         while True:
@@ -149,22 +147,16 @@ class MalosDriver(object):
         """
         MALOS data async generator
 
-        Connects to the corresponding data port (base_port +3) given the desired
-        base_port and yields messages.
+        Connects to the corresponding data port (base_port +3) and yields
+        messages received through it.
 
-        Args:
-            None
-
-        :return Data protobuf sent by MALOS
+        Yields:
+            Data protobuf sent by MALOS.
         """
-
-        # Set up socket as a subscription
         sock = self.ctx.socket(zmq.SUB)
-
-        # Connect to the base sensor port provided in the args + 3 for the data port
         sock.connect('tcp://{0}:{1}'.format(self.address, self.base_port + 3))
 
-        # Set socket options to subscribe and send off en empty string to let it know we're ready
+        # We send an empty message to let it know we're ready
         sock.setsockopt(zmq.SUBSCRIBE, b'')
 
         while True:
