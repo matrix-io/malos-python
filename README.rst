@@ -1,44 +1,46 @@
-MATRIXIO MALOS Libs
-===================
-`Python`_ tiny set of libraries for communicating with MATRIX-MALOS services.
+============================
+MATRIXIO Python MALOS Driver
+============================
+A simple `Python`_ coroutine based driver for communicating with `MATRIX-MALOS services`_.
 
 Installing
-----------
+==========
 
-This package is NOT available on `pypi`_ anymore, so you create a package and install it:
+The package is available on Pypi, so you can easily install via pip:
 
-::
+.. code-block:: console
 
- python setup.py sdist
- pip install ./dist/matrix_io-malos-0.1.0.tar.gz
+ pip install matrix-io-malos
 
 
 Running the CLI client
-----------------------
+======================
 
 The library includes a simple command line client to start reading data from 
 your MALOS service right away. 
 
-::
+.. code-block:: console
 
     # Get the malosclient help screen
     malosclient --help
 
     # Get IMU data to STDOUT from a locally running MALOS service
-    malosclient IMU_PORT
+    malosclient IMU
 
     # Get HUMIDITY data to STDOUT from a remotely running MALOS service
-    malosclient -h 192.168.0.100 HUMIDITY_PORT
+    malosclient -h 192.168.0.100 HUMIDITY
 
     # Get FACE detection data using a serialized driver config file
-    malosclient --driver-config-file ~/driver_config.proto FACE_PORT
+    malosclient --driver-config-file ~/driver_config.proto VISION
+
 
 Using the MalosDriver
----------------------
+=====================
 
-To use the MALOS driver in your code do the following:
+To use the MALOS driver works as an async generator so in your code 
+you can do the following:
 
-::
+.. code-block:: python
 
     import asyncio
     import sys
@@ -97,10 +99,10 @@ To use the MALOS driver in your code do the following:
         loop.run_until_complete(loop.shutdown_asyncgens())
         loop.close()
 
-
 .. _0MQ: http://zeromq.org/
 .. _Python: https://www.python.org/
 .. _virtualenv: https://virtualenv.pypa.io/en/stable/
 .. _matrixio-protos-0.0.25: https://pypi.org/project/matrix-io-proto
 .. _pypi: https://pypi.org/
+.. _MATRIX-MALOS services_: https://matrix-io.github.io/matrix-documentation/matrix-core/getting-started/understanding-core/
 
