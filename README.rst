@@ -104,5 +104,5 @@ you can do the following:
 .. _virtualenv: https://virtualenv.pypa.io/en/stable/
 .. _matrixio-protos-0.0.25: https://pypi.org/project/matrix-io-proto
 .. _pypi: https://pypi.org/
-.. _MATRIX-MALOS services_: https://matrix-io.github.io/matrix-documentation/matrix-core/getting-started/understanding-core/
+.. _MATRIX-MALOS services: https://matrix-io.github.io/matrix-documentation/matrix-core/getting-started/understanding-core/
 
