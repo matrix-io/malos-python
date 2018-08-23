@@ -6,7 +6,7 @@ from subprocess import call
 
 from setuptools import Command, setup, find_packages
 
-__version__ = '0.0.5'
+__version__ = '0.1.0'
 
 
 PKG_ROOT = os.path.abspath(os.path.dirname(__file__))
@@ -47,7 +47,6 @@ setup(
         'Topic :: Utilities',
         'Natural Language :: English',
         'Operating System :: OS Independent',
-        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
     ],
     packages=find_packages(),
