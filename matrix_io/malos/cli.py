@@ -12,6 +12,7 @@ Options:
                               [default: 10.0] secs.
   --version                   Show version.
   --driver-config-file=PATH   Serialized driver config protobuf file to load.
+  --loglevel=LEVEL            Desired loglevel output.
 
 MALOS Drivers (base Ports):
 
@@ -80,8 +81,6 @@ async def data_handler(malos_driver, driver_name):
         else:
             print(proto_msg)
 
-        await asyncio.sleep(0.5)
-
 
 async def error_handler(malos_driver):
     """
@@ -96,7 +95,6 @@ async def error_handler(malos_driver):
     async for msg in malos_driver.get_error():
         """ STDERR Error message printer """
         print(msg, file=sys.stderr)
-        await asyncio.sleep(0.5)
 
 
 def main():
@@ -107,8 +105,6 @@ def main():
     Returns:
         None
     """
-    logging.basicConfig(level=logging.DEBUG)
-
     options = docopt(__doc__)
 
     # Driver configuration
@@ -155,6 +151,15 @@ def main():
             sys.exit(1)
         else:
             driver_config.ParseFromString(file_content)
+
+    # Logging configuration
+    if options['--loglevel']:
+        numeric_level = getattr(logging, options['--loglevel'].upper(), None)
+        if not isinstance(numeric_level, int):
+            logging.error('Invalid --loglevel: %s', options['--loglevel'])
+            raise SystemExit(1)
+
+        logging.basicConfig(format='%(asctime)s %(message)s', level=numeric_level)
 
     malos_driver = driver.MalosDriver(options['--malos-host'], driver_port,
                                       driver_config)

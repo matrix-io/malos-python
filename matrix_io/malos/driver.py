@@ -29,6 +29,7 @@ Each port reserves a range of 4 ports that are used for a driver:
 
 """
 
+import logging
 import asyncio
 
 import zmq
@@ -60,6 +61,7 @@ class MalosDriver(object):
 
         # 0MQ context
         self.ctx = Context()
+        self.logger = logging.getLogger(__name__)
 
         self.configure(config_proto)
 
@@ -89,6 +91,7 @@ class MalosDriver(object):
         # Send the configuration
         sock.send(config_proto.SerializeToString())
         sock.close()
+        self.logger.debug(':configure: %s' % config_proto)
 
     async def start_keep_alive(self, delay=5.0):
         """
@@ -115,9 +118,11 @@ class MalosDriver(object):
                 # An empty string is enough to let the driver know we're still
                 # listening
                 await sock.send_string('')
+                self.logger.debug(':keep-alive: ping')
                 await asyncio.sleep(delay)
             except asyncio.CancelledError:
                 # Exit gracefully when cancelled
+                self.logger.debug(':keep-alive: cancelled')
                 break
 
     async def get_error(self):
@@ -139,8 +144,11 @@ class MalosDriver(object):
         while True:
             try:
                 msg = await sock.recv_multipart()
+                self.logger.debug(':error-port: %s' % msg)
                 yield msg
             except asyncio.CancelledError:
+                # Exit gracefully when cancelled
+                self.logger.debug(':error-port: cancelled')
                 break
 
     async def get_data(self):
@@ -162,6 +170,8 @@ class MalosDriver(object):
         while True:
             try:
                 msg = await sock.recv_multipart()
+                self.logger.debug(':data-port: %s' % msg)
                 yield msg[0]
             except asyncio.CancelledError:
+                self.logger.debug(':data-port: cancelled')
                 break
