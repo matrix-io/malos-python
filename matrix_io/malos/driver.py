@@ -17,7 +17,7 @@ Everloop with port 20021.
 Pressure with port 20025.
 UV with port 20029.
 MicArray_Alsa with port 20037.
-FACE with port 60001
+VISION with port 60001
 
 Each port reserves a range of 4 ports that are used for a driver:
 
@@ -40,7 +40,7 @@ EVERLOOP_PORT = 20021
 PRESSURE_PORT = 20025
 UV_PORT = 20029
 MICARRAY_ALSA_PORT = 20037
-FACE_PORT = 60001
+VISION_PORT = 60001
 
 
 class MalosDriver(object):
