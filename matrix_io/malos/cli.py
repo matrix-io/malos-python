@@ -59,6 +59,16 @@ DRIVER_PROTOS = {
 
 
 async def data_handler(malos_driver, driver_name):
+    """
+    Sample coroutine accessing the MALOS driver data generator
+
+    Args:
+        malos_driver: MALOSDriver instance
+        driver_name: driver name as a string (IMU, UV, PRESSURE)
+
+    Returns:
+        None
+    """
     async for data in malos_driver.get_data():
         proto_msg = DRIVER_PROTOS[driver_name].FromString(data)
 
@@ -74,6 +84,15 @@ async def data_handler(malos_driver, driver_name):
 
 
 async def error_handler(malos_driver):
+    """
+    Sample coroutine accessing the MALOS driver error generator
+
+    Args:
+        malos_driver: MalosDriver instance
+
+    Returns:
+        None
+    """
     async for msg in malos_driver.get_error():
         """ STDERR Error message printer """
         print(msg, file=sys.stderr)
