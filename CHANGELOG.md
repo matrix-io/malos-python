@@ -12,6 +12,7 @@ when closing application
 
 ### Changed
 - Update matrix-io-proto from 0.0.25 to 0.0.26
+- Update pyzmq from 17.0.0 to 17.1.2
 - `MalosDriver.configure()` is not called on initialization anymore
 
 ### Removed
