@@ -29,7 +29,7 @@ generators
 ### Removed
 - `MalosLoop` class
 
-## 0.0.4 - 2018-05-14
+## [0.0.4] - 2018-05-14
 ### Added
 - MALOS Driver 0MQ interface functions
 - MalosLoop class for starting drivers
