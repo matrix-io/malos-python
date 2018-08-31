@@ -156,8 +156,8 @@ def main():
         else:
             driver_config.ParseFromString(file_content)
 
-    malos_driver = driver.MalosDriver(options['--malos-host'], driver_port,
-                                      driver_config)
+    malos_driver = driver.MalosDriver(options['--malos-host'], driver_port)
+    malos_driver.configure(driver_config)
 
     loop = asyncio.get_event_loop()
 

@@ -46,7 +46,7 @@ VISION_PORT = 60001
 class MalosDriver(object):
     """ Coroutine based MALOS manager """
 
-    def __init__(self, address, base_port, config_proto):
+    def __init__(self, address, base_port):
         """
         Constructor
 
@@ -59,9 +59,13 @@ class MalosDriver(object):
         self.base_port = base_port
 
         # 0MQ context
-        self.ctx = Context()
+        self.ctx = Context.instance()
 
-        self.configure(config_proto)
+        # How long to hold pending messages in memory after
+        # closing a socket (in milliseconds).
+        # Avoids context hanging indefinitely
+        # when destroyed.
+        self.ctx.setsockopt(zmq.LINGER, 3000)
 
     def configure(self, config_proto):
         """
@@ -117,7 +121,7 @@ class MalosDriver(object):
                 await sock.send_string('')
                 await asyncio.sleep(delay)
             except asyncio.CancelledError:
-                # Exit gracefully when cancelled
+                sock.close()
                 break
 
     async def get_error(self):
@@ -141,6 +145,7 @@ class MalosDriver(object):
                 msg = await sock.recv_multipart()
                 yield msg
             except asyncio.CancelledError:
+                sock.close()
                 break
 
     async def get_data(self):
@@ -164,4 +169,5 @@ class MalosDriver(object):
                 msg = await sock.recv_multipart()
                 yield msg[0]
             except asyncio.CancelledError:
+                sock.close()
                 break
