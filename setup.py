@@ -6,7 +6,7 @@ from subprocess import call
 
 from setuptools import Command, setup, find_packages
 
-__version__ = '0.1.0'
+__version__ = '0.1.1'
 
 
 PKG_ROOT = os.path.abspath(os.path.dirname(__file__))
@@ -53,8 +53,8 @@ setup(
     packages=find_packages(),
     install_requires=[
         'docopt==0.6.2',
-        'matrix-io-proto==0.0.25',
-        'pyzmq==17.0.0'
+        'matrix-io-proto==0.0.26',
+        'pyzmq==17.1.2'
     ],
     extras_require={
         'test': ['coverage', 'pytest', 'pytest-cov'],

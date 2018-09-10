@@ -74,8 +74,10 @@ you can do the following:
     driver_config = driver_pb2.DriverConfig()
 
     # Create the drivers
-    imu_driver = MalosDriver('localhost', IMU_PORT, driver_config)
-    uv_driver = MalosDriver('localhost', UV_PORT, driver_config)
+    imu_driver = MalosDriver('localhost', IMU_PORT)
+    uv_driver = MalosDriver('localhost', UV_PORT)
+    imu_driver.configure(driver_config)
+    uv_driver.configure(driver_config)
 
     # Create loop and initialize keep-alive
     loop = asyncio.get_event_loop()
