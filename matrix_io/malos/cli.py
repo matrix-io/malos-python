@@ -161,8 +161,9 @@ def main():
 
         logging.basicConfig(format='%(asctime)s %(message)s', level=numeric_level)
 
-    malos_driver = driver.MalosDriver(options['--malos-host'], driver_port,
-                                      driver_config)
+
+    malos_driver = driver.MalosDriver(options['--malos-host'], driver_port)
+    malos_driver.configure(driver_config)
 
     loop = asyncio.get_event_loop()
 
