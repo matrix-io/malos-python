@@ -3,14 +3,19 @@ MATRIXIO Python MALOS Driver
 ============================
 A simple `Python`_ coroutine based driver for communicating with `MATRIX-MALOS services`_.
 
+License
+=======
+
+This application abides to the GNU General Public License, as described in the ``LICENSE`` file.
+
 Installing
 ==========
 
-The package is available on Pypi, so you can easily install via pip:
+The package is available on PyPI, so you can easily install via pip:
 
 .. code-block:: console
 
- pip install matrix-io-malos
+    $ pip install matrix-io-malos
 
 
 Running the CLI client
@@ -22,16 +27,16 @@ your MALOS service right away.
 .. code-block:: console
 
     # Get the malosclient help screen
-    malosclient --help
+    $ malosclient --help
 
     # Get IMU data to STDOUT from a locally running MALOS service
-    malosclient IMU
+    $ malosclient IMU
 
     # Get HUMIDITY data to STDOUT from a remotely running MALOS service
-    malosclient -h 192.168.0.100 HUMIDITY
+    $ malosclient -h 192.168.0.100 HUMIDITY
 
     # Get FACE detection data using a serialized driver config file
-    malosclient --driver-config-file ~/driver_config.proto VISION
+    $ malosclient --driver-config-file ~/driver_config.proto VISION
 
 
 Using the MalosDriver
@@ -100,6 +105,20 @@ you can do the following:
 
         loop.run_until_complete(loop.shutdown_asyncgens())
         loop.close()
+
+Who can answer questions about this library?
+============================================
+
+- Heitor Silva <heitor.silva@admobilize.com>
+- Maciej Ruckgaber <maciek.ruckgaber@admobilize.com>
+
+More Documentation
+==================
+
+.. toctree::
+    :titlesonly:
+
+    CHANGELOG
 
 .. _0MQ: http://zeromq.org/
 .. _Python: https://www.python.org/
