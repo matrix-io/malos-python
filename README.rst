@@ -6,7 +6,7 @@ A simple `Python`_ coroutine based driver for communicating with `MATRIX-MALOS s
 License
 =======
 
-This application abides to the GNU General Public License, as described in the ``LICENSE`` file.
+This application follows the GNU General Public License, as described in the ``LICENSE`` file.
 
 Installing
 ==========
