@@ -3,7 +3,21 @@ MATRIXIO Python MALOS Driver project adheres to [Semantic Versioning](http://sem
 
 ## [Unreleased]
 
-## [0.1.1] - 2018-08.31
+## [0.2.0] - 2018-10-02
+
+### Added
+- `get_status` function that returns a `driver_pb2.Status` object
+
+### Changed
+- Update matrix-io-proto from 0.0.26 to 0.0.27
+- `error` port became `status` port
+- Keep Alive port now raises `MalosKeepAliveTimeout` if Malos doesn't respond with
+pong in a certain period defined by the `timeout` parameter
+
+### Removed
+- Print whole `DriverConfig` on debug log when calling `configure`
+
+## [0.1.1] - 2018-08-31
 
 ### Added
 - Set LINGER option on `MalosDriver` zmq context to avoid hanging 
