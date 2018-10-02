@@ -35,6 +35,7 @@ import asyncio
 
 import zmq
 from matrix_io.proto.malos.v1 import driver_pb2
+from typing import AsyncIterable
 from zmq.asyncio import Context
 
 IMU_PORT = 20013
@@ -152,7 +153,7 @@ class MalosDriver(object):
                 sock.close()
                 break
 
-    async def get_status(self) -> driver_pb2.Status:
+    async def get_status(self) -> AsyncIterable[driver_pb2.Status]:
         """
         MALOS status async generator
 
@@ -180,7 +181,7 @@ class MalosDriver(object):
                 sock.close()
                 break
 
-    async def get_data(self) -> bytes:
+    async def get_data(self) -> AsyncIterable[bytes]:
         """
         MALOS data async generator
 
