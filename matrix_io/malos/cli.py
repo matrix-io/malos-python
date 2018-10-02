@@ -82,7 +82,7 @@ async def data_handler(malos_driver, driver_name):
             print(proto_msg)
 
 
-async def error_handler(malos_driver):
+async def status_handler(malos_driver):
     """
     Sample coroutine accessing the MALOS driver error generator
 
@@ -92,9 +92,25 @@ async def error_handler(malos_driver):
     Returns:
         None
     """
-    async for msg in malos_driver.get_error():
+
+    type_mapping = {
+        driver_pb2.Status.NOT_DEFINED: "Not Defined",
+        driver_pb2.Status.STARTED: "Started",
+        driver_pb2.Status.CONFIG_RECEIVED: "Config Received",
+        driver_pb2.Status.COMMAND_EXECUTED: "Command Executed",
+        driver_pb2.Status.ERROR: "Error",
+        driver_pb2.Status.WARNING: "Warning"
+    }
+
+    async for msg in malos_driver.get_status():
         """ STDERR Error message printer """
-        print(msg, file=sys.stderr)
+
+        print(type_mapping[msg.type])
+
+        if msg.uuid:
+            print("UUID: {}".format(msg.uuid))
+        if msg.message:
+            print("MESSAGE: {}".format(msg.message))
 
 
 def main():
@@ -170,7 +186,7 @@ def main():
     # Schedule tasks
     loop.create_task(malos_driver.start_keep_alive())
     loop.create_task(data_handler(malos_driver, driver_name))
-    loop.create_task(error_handler(malos_driver))
+    loop.create_task(status_handler(malos_driver))
     try:
         loop.run_forever()
     except KeyboardInterrupt:

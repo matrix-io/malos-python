@@ -69,9 +69,25 @@ you can do the following:
             await asyncio.sleep(1.0)
 
 
-    async def error_handler(driver):
+    async def status_handler(driver):
+
+        type_mapping = {
+            driver_pb2.Status.NOT_DEFINED: "Not Defined",
+            driver_pb2.Status.STARTED: "Started",
+            driver_pb2.Status.CONFIG_RECEIVED: "Config Received",
+            driver_pb2.Status.COMMAND_EXECUTED: "Command Executed",
+            driver_pb2.Status.ERROR: "Error",
+            driver_pb2.Status.WARNING: "Warning"
+        }
+
         async for msg in driver.get_error():
-            print('Error: %s' % msg, file=sys.stderr)
+            print(type_mapping[msg.type])
+
+            if msg.uuid:
+                print("UUID: {}".format(msg.uuid))
+            if msg.message:
+                print("MESSAGE: {}".format(msg.message))
+
             await asyncio.sleep(1.0)
 
 
@@ -92,8 +108,8 @@ you can do the following:
     # Initialize data and error handlers
     loop.create_task(imu_data(imu_driver))
     loop.create_task(uv_data(uv_driver))
-    loop.create_task(error_handler(imu_driver))
-    loop.create_task(error_handler(uv_driver))
+    loop.create_task(status_handler(imu_driver))
+    loop.create_task(status_handler(uv_driver))
 
     try:
         loop.run_forever()
