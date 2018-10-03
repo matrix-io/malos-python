@@ -127,8 +127,7 @@ class MalosDriver(object):
         sock = self.ctx.socket(zmq.REQ)
         sock.connect('tcp://{0}:{1}'.format(self.address, self.base_port + 1))
 
-        poller = zmq.Poller()
-        poller.register(sock, zmq.POLLIN)
+        sock.setsockopt(zmq.RCVTIMEO, int(1000*timeout))
 
         # If the keep-alive pings stop, MALOS will stop the driver and stop
         # sending updates. Pings are useful to prevent blocked applications
@@ -140,10 +139,10 @@ class MalosDriver(object):
                 await sock.send_string('')
                 self.logger.debug(':keep-alive: ping')
 
-                if poller.poll(timeout*1000):
+                try:
                     await sock.recv_string()
                     self.logger.debug(':keep-alive: pong')
-                else:
+                except zmq.error.Again:
                     raise MalosKeepAliveTimeout()
 
                 await asyncio.sleep(delay)
