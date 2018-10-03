@@ -13,6 +13,7 @@ MATRIXIO Python MALOS Driver project adheres to [Semantic Versioning](http://sem
 - `error` port became `status` port
 - Keep Alive port now raises `MalosKeepAliveTimeout` if Malos doesn't respond with
 pong in a certain period defined by the `timeout` parameter
+- Keep Alive now raises `asyncio.CancelledError` when cancelled
 
 ### Removed
 - Print whole `DriverConfig` on debug log when calling `configure`

@@ -147,10 +147,10 @@ class MalosDriver(object):
 
                 await asyncio.sleep(delay)
             except asyncio.CancelledError:
-                # Exit gracefully when cancelled
                 self.logger.debug(':keep-alive: cancelled')
                 sock.close()
-                break
+                # re-raise CancelledError
+                raise
 
     async def get_status(self) -> AsyncIterable[driver_pb2.Status]:
         """
