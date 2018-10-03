@@ -80,7 +80,7 @@ you can do the following:
             driver_pb2.Status.WARNING: "Warning"
         }
 
-        async for msg in driver.get_error():
+        async for msg in driver.get_status():
             print(type_mapping[msg.type])
 
             if msg.uuid:
