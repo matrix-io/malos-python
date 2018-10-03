@@ -106,7 +106,7 @@ class MalosDriver(object):
         sock.close()
         self.logger.debug(':configure: %r bytes' % sys.getsizeof(config_string))
 
-    async def start_keep_alive(self, delay: int = 5.0, timeout: int = 5000) -> None:
+    async def start_keep_alive(self, delay: int = 5.0, timeout: int = 5.0) -> None:
         """
         MALOS keep-alive starter
 
@@ -116,7 +116,7 @@ class MalosDriver(object):
 
         Args:
             delay: delay between pings in seconds
-            timeout: how long to wait for pongs before timeout in milliseconds
+            timeout: how long to wait for pongs before timeout in seconds
 
         Raises:
             MalosKeepAliveTimeout
@@ -140,7 +140,7 @@ class MalosDriver(object):
                 await sock.send_string('')
                 self.logger.debug(':keep-alive: ping')
 
-                if poller.poll(timeout):
+                if poller.poll(timeout*1000):
                     await sock.recv_string()
                     self.logger.debug(':keep-alive: pong')
                 else:
