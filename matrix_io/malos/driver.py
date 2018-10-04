@@ -132,25 +132,27 @@ class MalosDriver(object):
         # If the keep-alive pings stop, MALOS will stop the driver and stop
         # sending updates. Pings are useful to prevent blocked applications
         # from keeping a MALOS driver busy.
-        while True:
-            try:
+        try:
+            while True:
                 # An empty string is enough to let the driver know we're still
                 # listening
                 await sock.send_string('')
                 self.logger.debug(':keep-alive: ping')
 
-                try:
-                    await sock.recv_string()
-                    self.logger.debug(':keep-alive: pong')
-                except zmq.error.Again:
-                    raise MalosKeepAliveTimeout()
+                await sock.recv_string()
+                self.logger.debug(':keep-alive: pong')
 
                 await asyncio.sleep(delay)
-            except asyncio.CancelledError:
-                self.logger.debug(':keep-alive: cancelled')
-                sock.close()
-                # re-raise CancelledError
-                raise
+        except zmq.error.Again:
+            raise MalosKeepAliveTimeout()
+        except asyncio.CancelledError:
+            self.logger.debug(':keep-alive: cancelled')
+            # re-raise CancelledError
+            raise
+        finally:
+            self.logger.debug(':keep-alive: socked closed')
+            sock.close()
+
 
     async def get_status(self) -> AsyncIterable[driver_pb2.Status]:
         """
@@ -168,17 +170,20 @@ class MalosDriver(object):
         # We send an empty message to let it know we're ready
         sock.setsockopt(zmq.SUBSCRIBE, b'')
 
-        while True:
-            try:
+        try:
+            while True:
                 msg = await sock.recv_multipart()
                 status = driver_pb2.Status().FromString(msg[0])
                 self.logger.debug(':status-port: %s' % status)
                 yield status
-            except asyncio.CancelledError:
-                # Exit gracefully when cancelled
-                self.logger.debug(':status-port: cancelled')
-                sock.close()
-                break
+        except asyncio.CancelledError:
+            self.logger.debug(':status-port: cancelled')
+            # Exit gracefully when cancelled
+            return
+        finally:
+            self.logger.debug(':status-port: socked closed')
+            sock.close()
+
 
     async def get_data(self) -> AsyncIterable[bytes]:
         """
@@ -196,12 +201,16 @@ class MalosDriver(object):
         # We send an empty message to let it know we're ready
         sock.setsockopt(zmq.SUBSCRIBE, b'')
 
-        while True:
-            try:
+        try:
+            while True:
                 msg = await sock.recv_multipart()
                 self.logger.debug(':data-port: %s' % msg)
                 yield msg[0]
-            except asyncio.CancelledError:
-                self.logger.debug(':data-port: cancelled')
-                sock.close()
-                break
+        except asyncio.CancelledError:
+            self.logger.debug(':data-port: cancelled')
+            # Exit gracefully when cancelled
+            return
+        finally:
+            self.logger.debug(':data-port: socked closed')
+            sock.close()
+
