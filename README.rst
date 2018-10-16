@@ -3,14 +3,19 @@ MATRIXIO Python MALOS Driver
 ============================
 A simple `Python`_ coroutine based driver for communicating with `MATRIX-MALOS services`_.
 
+License
+=======
+
+This application follows the GNU General Public License, as described in the ``LICENSE`` file.
+
 Installing
 ==========
 
-The package is available on Pypi, so you can easily install via pip:
+The package is available on PyPI, so you can easily install via pip:
 
 .. code-block:: console
 
- pip install matrix-io-malos
+    $ pip install matrix-io-malos
 
 
 Running the CLI client
@@ -22,16 +27,16 @@ your MALOS service right away.
 .. code-block:: console
 
     # Get the malosclient help screen
-    malosclient --help
+    $ malosclient --help
 
     # Get IMU data to STDOUT from a locally running MALOS service
-    malosclient IMU
+    $ malosclient IMU
 
     # Get HUMIDITY data to STDOUT from a remotely running MALOS service
-    malosclient -h 192.168.0.100 HUMIDITY
+    $ malosclient -h 192.168.0.100 HUMIDITY
 
     # Get FACE detection data using a serialized driver config file
-    malosclient --driver-config-file ~/driver_config.proto VISION
+    $ malosclient --driver-config-file ~/driver_config.proto VISION
 
 
 Using the MalosDriver
@@ -64,9 +69,25 @@ you can do the following:
             await asyncio.sleep(1.0)
 
 
-    async def error_handler(driver):
-        async for msg in driver.get_error():
-            print('Error: %s' % msg, file=sys.stderr)
+    async def status_handler(driver):
+
+        type_mapping = {
+            driver_pb2.Status.NOT_DEFINED: "Not Defined",
+            driver_pb2.Status.STARTED: "Started",
+            driver_pb2.Status.CONFIG_RECEIVED: "Config Received",
+            driver_pb2.Status.COMMAND_EXECUTED: "Command Executed",
+            driver_pb2.Status.ERROR: "Error",
+            driver_pb2.Status.WARNING: "Warning"
+        }
+
+        async for msg in driver.get_status():
+            print(type_mapping[msg.type])
+
+            if msg.uuid:
+                print("UUID: {}".format(msg.uuid))
+            if msg.message:
+                print("MESSAGE: {}".format(msg.message))
+
             await asyncio.sleep(1.0)
 
 
@@ -87,8 +108,8 @@ you can do the following:
     # Initialize data and error handlers
     loop.create_task(imu_data(imu_driver))
     loop.create_task(uv_data(uv_driver))
-    loop.create_task(error_handler(imu_driver))
-    loop.create_task(error_handler(uv_driver))
+    loop.create_task(status_handler(imu_driver))
+    loop.create_task(status_handler(uv_driver))
 
     try:
         loop.run_forever()
@@ -100,6 +121,20 @@ you can do the following:
 
         loop.run_until_complete(loop.shutdown_asyncgens())
         loop.close()
+
+Who can answer questions about this library?
+============================================
+
+- Heitor Silva <heitor.silva@admobilize.com>
+- Maciej Ruckgaber <maciek.ruckgaber@admobilize.com>
+
+More Documentation
+==================
+
+.. toctree::
+    :titlesonly:
+
+    CHANGELOG
 
 .. _0MQ: http://zeromq.org/
 .. _Python: https://www.python.org/

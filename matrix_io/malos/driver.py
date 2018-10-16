@@ -22,17 +22,20 @@ VISION with port 60001
 Each port reserves a range of 4 ports that are used for a driver:
 
 * Base port: (driver port) port for sending configuration proto to MALOS driver.
-* Keep alive port: port for sending keep alive messages, so MALOS driver keeps reading data
+* Keep alive port: port for sending and receiving keep alive messages, so MALOS driver keeps reading data
   from sensors.
-* Error port: port yielding MALOS errors when they occur.
+* Status port: port yielding MALOS status when they occur.
 * Data update port: port yielding sensor data updates.
 
 """
+import sys
 
 import logging
 import asyncio
 
 import zmq
+from matrix_io.proto.malos.v1 import driver_pb2
+from typing import AsyncIterable
 from zmq.asyncio import Context
 
 IMU_PORT = 20013
@@ -43,11 +46,14 @@ UV_PORT = 20029
 MICARRAY_ALSA_PORT = 20037
 VISION_PORT = 60001
 
+class MalosKeepAliveTimeout(Exception):
+    pass
+
 
 class MalosDriver(object):
     """ Coroutine based MALOS manager """
 
-    def __init__(self, address, base_port):
+    def __init__(self, address: str, base_port: int):
         """
         Constructor
 
@@ -70,7 +76,7 @@ class MalosDriver(object):
         # when destroyed.
         self.ctx.setsockopt(zmq.LINGER, 3000)
 
-    def configure(self, config_proto):
+    def configure(self, config_proto: driver_pb2.DriverConfig) -> None:
         """
         MALOS configuration
 
@@ -93,53 +99,70 @@ class MalosDriver(object):
         # Connect to the config port, same base port
         sock.connect('tcp://{0}:{1}'.format(self.address, self.base_port))
 
-        # Send the configuration
-        sock.send(config_proto.SerializeToString())
-        sock.close()
-        self.logger.debug(':configure: %s' % config_proto)
+        config_string = config_proto.SerializeToString()
 
-    async def start_keep_alive(self, delay=5.0):
+        # Send the configuration
+        sock.send(config_string)
+        sock.close()
+        self.logger.debug(':configure: %r bytes' % sys.getsizeof(config_string))
+
+    async def start_keep_alive(self, delay: int = 5.0, timeout: int = 5.0) -> None:
         """
         MALOS keep-alive starter
 
         Connects to the corresponding keep-alive port (base_port +1) given the
-        desired base_port. We send keep alive pings so MALOS keeps sampling the
-        data from the sensors and we can keep yielding with get_data.
+        desired base_port. We send keep alive pings and receive pongs so MALOS
+        keeps sampling the data from the sensors and we can keep yielding with get_data.
 
         Args:
-            delay: delay between pings
+            delay: delay between pings in seconds
+            timeout: how long to wait for pongs before timeout in seconds
+
+        Raises:
+            MalosKeepAliveTimeout
 
         Yields:
             Doesn't yield anything
         """
-        sock = self.ctx.socket(zmq.PUSH)
+        sock = self.ctx.socket(zmq.REQ)
         sock.connect('tcp://{0}:{1}'.format(self.address, self.base_port + 1))
+
+        sock.setsockopt(zmq.RCVTIMEO, int(1000*timeout))
 
         # If the keep-alive pings stop, MALOS will stop the driver and stop
         # sending updates. Pings are useful to prevent blocked applications
         # from keeping a MALOS driver busy.
-        while True:
-            try:
+        try:
+            while True:
                 # An empty string is enough to let the driver know we're still
                 # listening
                 await sock.send_string('')
                 self.logger.debug(':keep-alive: ping')
+
+                await sock.recv_string()
+                self.logger.debug(':keep-alive: pong')
+
                 await asyncio.sleep(delay)
-            except asyncio.CancelledError:
-                # Exit gracefully when cancelled
-                self.logger.debug(':keep-alive: cancelled')
-                sock.close()
-                break
+        except zmq.error.Again:
+            raise MalosKeepAliveTimeout()
+        except asyncio.CancelledError:
+            self.logger.debug(':keep-alive: cancelled')
+            # re-raise CancelledError
+            raise
+        finally:
+            self.logger.debug(':keep-alive: socked closed')
+            sock.close()
 
-    async def get_error(self):
+
+    async def get_status(self) -> AsyncIterable[driver_pb2.Status]:
         """
-        MALOS error async generator
+        MALOS status async generator
 
-        Connects to the corresponding error port (base_port +2) given the desired
+        Connects to the corresponding status port (base_port +2) given the desired
         base_port and yields messages.
 
         Yields:
-            Error string when a MALOS error is received
+            Status proto
         """
         sock = self.ctx.socket(zmq.SUB)
         sock.connect('tcp://{0}:{1}'.format(self.address, self.base_port + 2))
@@ -147,18 +170,22 @@ class MalosDriver(object):
         # We send an empty message to let it know we're ready
         sock.setsockopt(zmq.SUBSCRIBE, b'')
 
-        while True:
-            try:
+        try:
+            while True:
                 msg = await sock.recv_multipart()
-                self.logger.debug(':error-port: %s' % msg)
-                yield msg
-            except asyncio.CancelledError:
-                # Exit gracefully when cancelled
-                self.logger.debug(':error-port: cancelled')
-                sock.close()
-                break
+                status = driver_pb2.Status().FromString(msg[0])
+                self.logger.debug(':status-port: %s' % status)
+                yield status
+        except asyncio.CancelledError:
+            self.logger.debug(':status-port: cancelled')
+            # Exit gracefully when cancelled
+            return
+        finally:
+            self.logger.debug(':status-port: socked closed')
+            sock.close()
 
-    async def get_data(self):
+
+    async def get_data(self) -> AsyncIterable[bytes]:
         """
         MALOS data async generator
 
@@ -174,12 +201,16 @@ class MalosDriver(object):
         # We send an empty message to let it know we're ready
         sock.setsockopt(zmq.SUBSCRIBE, b'')
 
-        while True:
-            try:
+        try:
+            while True:
                 msg = await sock.recv_multipart()
                 self.logger.debug(':data-port: %s' % msg)
                 yield msg[0]
-            except asyncio.CancelledError:
-                self.logger.debug(':data-port: cancelled')
-                sock.close()
-                break
+        except asyncio.CancelledError:
+            self.logger.debug(':data-port: cancelled')
+            # Exit gracefully when cancelled
+            return
+        finally:
+            self.logger.debug(':data-port: socked closed')
+            sock.close()
+
