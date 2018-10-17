@@ -6,5 +6,5 @@ pipeline:
       event: tag
     secrets: [ pypi_username, pypi_password ]
     repository: https://upload.pypi.org/legacy/
-    username: ${PYPI_USERNAME}
-    password: ${PYPI_PASSWORD}
+    username: $${PYPI_USERNAME}
+    password: $${PYPI_PASSWORD}
