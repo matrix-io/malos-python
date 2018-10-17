@@ -1,7 +1,13 @@
 pipeline:
 
   pypi-publish:
-    image: admopm/drone-pypi
+    image: python:3.6-slim
     when:
-      event: tag
-    secrets: [ username, password ]
+      event: [tag, push]
+      branch: [hs/fix-drone]
+    secrets: [ pypi_username, pypi_password ]
+    commands:
+      - pip install twine
+      - python setup.py sdist bdist_wheel
+      - twine upload -u $${PYPI_USERNAME} -p $${PYPI_PASSWORD} dist/*
+
