@@ -1,8 +1,7 @@
 pipeline:
 
   pypi-publish:
-    image: gjtempleton/drone-pypi
+    image: admopm/drone-pypi
     when:
       event: tag
     secrets: [ username, password ]
-    repository: https://upload.pypi.org/legacy/
