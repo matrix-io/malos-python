@@ -5,5 +5,5 @@ pipeline:
     when:
       event: tag
     secrets: [ pypi_username, pypi_password ]
-    username: asjdhaskjdhas
-    password: ${PYPI_PASSWORD}
+    username: heitor
+    password: $PYPI_PASSWORD
