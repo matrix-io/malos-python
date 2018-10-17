@@ -1,7 +1,10 @@
 pipeline:
 
   pypi-publish:
-    image: admopm/drone-pypi
+    image: gjtempleton/drone-pypi
     when:
       event: tag
     secrets: [ pypi_username, pypi_password ]
+    repostory: https://pypi.org
+    username: ${PYPI_USERNAME}
+    password: ${PYPI_PASSWORD}
