@@ -3,8 +3,7 @@ pipeline:
   pypi-publish:
     image: python:3.6-slim
     when:
-      event: [tag, push]
-      branch: [hs/fix-drone]
+      event: tag
     secrets: [ pypi_username, pypi_password ]
     commands:
       - pip install twine
