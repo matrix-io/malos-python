@@ -6,7 +6,7 @@ from subprocess import call
 
 from setuptools import Command, setup, find_packages
 
-__version__ = '0.2.0'
+__version__ = '0.2.1'
 
 
 PKG_ROOT = os.path.abspath(os.path.dirname(__file__))

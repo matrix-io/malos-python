@@ -3,6 +3,10 @@ MATRIXIO Python MALOS Driver project adheres to [Semantic Versioning](http://sem
 
 ## [Unreleased]
 
+## [0.2.1] - 2018-10-17
+### Added
+- Publish package to pypi on tag event.
+
 ## [0.2.0] - 2018-10-02
 
 ### Added
