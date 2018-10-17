@@ -4,7 +4,5 @@ pipeline:
     image: gjtempleton/drone-pypi
     when:
       event: tag
-    secrets: [ pypi_username, pypi_password ]
+    secrets: [ username, password ]
     repository: https://upload.pypi.org/legacy/
-    username: $${PYPI_USERNAME}
-    password: $${PYPI_PASSWORD}
