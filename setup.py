@@ -68,7 +68,4 @@ setup(
         'matrix_io',
     ],
     zip_safe=False,
-    cmdclass={
-        'test': RunTests
-    },
 )
