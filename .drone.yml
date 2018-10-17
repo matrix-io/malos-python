@@ -1,0 +1,9 @@
+pipeline:
+
+  pypi-publish:
+    image: gjtempleton/drone-pypi
+    when:
+      event: tag
+    secrets: [ pypi_username, pypi_password ]
+    username: ${PYPI_USERNAME}
+    password: ${PYPI_PASSWORD}
