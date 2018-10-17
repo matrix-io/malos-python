@@ -5,6 +5,6 @@ pipeline:
     when:
       event: tag
     secrets: [ pypi_username, pypi_password ]
-    repostory: https://pypi.org
+    repository: https://pypi.org
     username: ${PYPI_USERNAME}
     password: ${PYPI_PASSWORD}
