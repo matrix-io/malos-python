@@ -179,11 +179,11 @@ def main():
 
 
     malos_driver = driver.MalosDriver(options['--malos-host'], driver_port)
-    malos_driver.configure(driver_config)
 
     loop = asyncio.get_event_loop()
-
+    
     # Schedule tasks
+    loop.run_until_complete(malos_driver.configure(driver_config))
     loop.create_task(malos_driver.start_keep_alive())
     loop.create_task(data_handler(malos_driver, driver_name))
     loop.create_task(status_handler(malos_driver))

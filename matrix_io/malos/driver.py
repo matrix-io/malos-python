@@ -49,6 +49,8 @@ VISION_PORT = 60001
 class MalosKeepAliveTimeout(Exception):
     pass
 
+class MalosConfigureTimeout(Exception):
+    pass
 
 class MalosDriver(object):
     """ Coroutine based MALOS manager """
@@ -74,9 +76,9 @@ class MalosDriver(object):
         # closing a socket (in milliseconds).
         # Avoids context hanging indefinitely
         # when destroyed.
-        self.ctx.setsockopt(zmq.LINGER, 3000)
+        self.ctx.setsockopt(zmq.LINGER, 0)
 
-    def configure(self, config_proto: driver_pb2.DriverConfig) -> None:
+    async def configure(self, config_proto: driver_pb2.DriverConfig, timeout: int = 5) -> None:
         """
         MALOS configuration
 
@@ -88,6 +90,10 @@ class MalosDriver(object):
 
         Args:
             config_proto: a driver.proto containing configuration for the driver
+            timeout: timeout to deliver configuration data to Malos
+
+        Raises:
+            MalosConfigureTimeout
 
         Returns:
             None
@@ -101,10 +107,23 @@ class MalosDriver(object):
 
         config_string = config_proto.SerializeToString()
 
-        # Send the configuration
-        sock.send(config_string)
-        sock.close()
-        self.logger.debug(':configure: %r bytes' % sys.getsizeof(config_string))
+        try:
+            # Send the configuration
+            tracker = await sock.send(config_string, copy=False, track=True)
+
+            try:
+                self.logger.debug(':configure: %r seconds timeout' % int(timeout))
+                tracker.wait(int(timeout))
+            except zmq.NotDone:
+                self.logger.debug(':configure: timeout reached')
+                raise MalosConfigureTimeout()
+
+            self.logger.debug(':configure: %r bytes delivered' % sys.getsizeof(config_string))
+        except asyncio.CancelledError:
+            return	
+        finally:
+            self.logger.debug(':configure: socket closed')
+            sock.close()
 
     async def start_keep_alive(self, delay: int = 5.0, timeout: int = 5.0) -> None:
         """
