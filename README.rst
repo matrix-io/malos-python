@@ -97,11 +97,11 @@ you can do the following:
     # Create the drivers
     imu_driver = MalosDriver('localhost', IMU_PORT)
     uv_driver = MalosDriver('localhost', UV_PORT)
-    imu_driver.configure(driver_config)
-    uv_driver.configure(driver_config)
 
     # Create loop and initialize keep-alive
     loop = asyncio.get_event_loop()
+    loop.run_until_complete(imu_driver.configure(driver_config))
+    loop.run_until_complete(uv_driver.configure(driver_config))
     loop.create_task(imu_driver.start_keep_alive())
     loop.create_task(uv_driver.start_keep_alive())
 
