@@ -90,7 +90,7 @@ class MalosDriver(object):
 
         Args:
             config_proto: a driver.proto containing configuration for the driver
-            timeout: timeout to deliver configuration data to Malos
+            timeout: timeout in seconds to deliver configuration data to Malos
 
         Raises:
             MalosConfigureTimeout
@@ -107,17 +107,25 @@ class MalosDriver(object):
 
         config_string = config_proto.SerializeToString()
 
+        timeout = int(timeout)
+
         try:
             # Send the configuration
             tracker = await sock.send(config_string, copy=False, track=True)
+           
+            self.logger.debug(':configure: %r seconds timeout' % timeout)
+            # Using asyncio.sleep instead of tracker.wait
+            # so that other async tasks can run while it waits
+            while timeout > 0:
+                await asyncio.sleep(1)
+                if tracker.done:
+                    break
+                timeout -= 1
 
-            try:
-                self.logger.debug(':configure: %r seconds timeout' % int(timeout))
-                tracker.wait(int(timeout))
-            except zmq.NotDone:
+            if timeout == 0 and not tracker.done:
                 self.logger.debug(':configure: timeout reached')
                 raise MalosConfigureTimeout()
-
+                
             self.logger.debug(':configure: %r bytes delivered' % sys.getsizeof(config_string))
         except asyncio.CancelledError:
             return	

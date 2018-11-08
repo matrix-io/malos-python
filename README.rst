@@ -72,12 +72,16 @@ you can do the following:
     async def status_handler(driver):
 
         type_mapping = {
-            driver_pb2.Status.NOT_DEFINED: "Not Defined",
+            driver_pb2.Status.MESSAGE_TYPE_NOT_DEFINED: "Not Defined",
             driver_pb2.Status.STARTED: "Started",
+            driver_pb2.Status.STOPPED: "Stopped",
             driver_pb2.Status.CONFIG_RECEIVED: "Config Received",
             driver_pb2.Status.COMMAND_EXECUTED: "Command Executed",
-            driver_pb2.Status.ERROR: "Error",
-            driver_pb2.Status.WARNING: "Warning"
+            driver_pb2.Status.STATUS_CRITICAL: "Critical",
+            driver_pb2.Status.STATUS_ERROR: "Error",
+            driver_pb2.Status.STATUS_WARNING: "Warning",
+            driver_pb2.Status.STATUS_INFO: "Info",
+            driver_pb2.Status.STATUS_DEBUG: "Debug"
         }
 
         async for msg in driver.get_status():

@@ -3,6 +3,13 @@ MATRIXIO Python MALOS Driver project adheres to [Semantic Versioning](http://sem
 
 ## [Unreleased]
 
+## [0.3.1] - 2018-11-08
+### Changed
+- `MalosDriver.configure` timeout now waits for the timeout asynchronously
+
+### Added
+- New Status message types to example script
+
 ## [0.3.0] - 2018-11-07
 ### Added
 - Timeout added to `MalosDriver.configure` function
