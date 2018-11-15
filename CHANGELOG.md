@@ -3,6 +3,10 @@ MATRIXIO Python MALOS Driver project adheres to [Semantic Versioning](http://sem
 
 ## [Unreleased]
 
+## [0.3.2] - 2018-11-14
+### Changed
+- Set matrix-io-proto to be at least version 0.0.29
+
 ## [0.3.1] - 2018-11-08
 ### Changed
 - `MalosDriver.configure` timeout now waits for the timeout asynchronously
