@@ -3,6 +3,11 @@ MATRIXIO Python MALOS Driver project adheres to [Semantic Versioning](http://sem
 
 ## [Unreleased]
 
+## [0.4.0] - 2019-04-23
+### Added
+- `get_frame` asynchronous generator to handle
+  video streaming from Malos.
+
 ## [0.3.2] - 2018-11-14
 ### Changed
 - Set matrix-io-proto to be at least version 0.0.29
