@@ -1,5 +1,4 @@
 pipeline:
-
   pypi-publish:
     image: python:3.6-slim
     when:
@@ -10,3 +9,21 @@ pipeline:
       - python setup.py sdist bdist_wheel
       - twine upload -u $${PYPI_USERNAME} -p $${PYPI_PASSWORD} dist/*
 
+  notify-always:
+    image: plugins/slack
+    secrets: [slack_webhook]
+    username: drone-ci-builder
+    channel: notifications
+    when:
+      event: tag
+    link_names: true
+    template: |
+      {{#success build.status}}
+        {{build.author}} just built `{{repo.name}}:{{build.branch}}` from <${DRONE_COMMIT_LINK}|#{{truncate build.commit 8}}>
+        :new: {{build.message}}
+      {{else}}
+        {{build.author}} just broke the build of `{{repo.name}}:{{build.branch}}` with >${DRONE_COMMIT_LINK}|#{{truncate build.commit 8}}
+        :new: :zombie: {{build.message}}
+      {{/success}}
+      :stopwatch: {{ since build.started }}
+      :gear: {{build.link}}
