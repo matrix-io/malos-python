@@ -19,6 +19,7 @@ UV with port 20029.
 MicArray_Alsa with port 20037.
 VISION with port 60001
 
+
 Each port reserves a range of 4 ports that are used for a driver:
 
 * Base port: (driver port) port for sending configuration proto to MALOS driver.
@@ -27,6 +28,7 @@ Each port reserves a range of 4 ports that are used for a driver:
 * Status port: port yielding MALOS status when they occur.
 * Data update port: port yielding sensor data updates.
 
+Video stream is available through port 59999.
 """
 import sys
 
@@ -45,6 +47,8 @@ PRESSURE_PORT = 20025
 UV_PORT = 20029
 MICARRAY_ALSA_PORT = 20037
 VISION_PORT = 60001
+
+STREAM_PORT = 59999
 
 class MalosKeepAliveTimeout(Exception):
     pass
@@ -239,5 +243,37 @@ class MalosDriver(object):
             return
         finally:
             self.logger.debug(':data-port: socked closed')
+            sock.close()
+
+    async def get_frame(self) -> AsyncIterable[bytes]:
+        """
+        MALOS frame async generator
+
+        Connects to the corresponding video stream port (59999) and yields
+        raw frames received through it.
+
+        Keepalive must be active and a START_STREAMING action must be sent
+        to Malos in order to make it start sending frames.
+
+        Yields:
+            Raw frame sent by MALOS.
+        """
+        sock = self.ctx.socket(zmq.SUB)
+        sock.connect('tcp://{0}:{1}'.format(self.address, STREAM_PORT))
+
+        # We send an empty message to let it know we're ready
+        sock.setsockopt(zmq.SUBSCRIBE, b'')
+
+        try:
+            while True:
+                msg = await sock.recv_multipart()
+                self.logger.debug(':stream-port: %s' % msg)
+                yield msg[0]
+        except asyncio.CancelledError:
+            self.logger.debug(':stream-port: cancelled')
+            # Exit gracefully when cancelled
+            return
+        finally:
+            self.logger.debug(':stream-port: socked closed')
             sock.close()
 
