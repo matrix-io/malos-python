@@ -14,8 +14,6 @@ pipeline:
     secrets: [slack_webhook]
     username: drone-ci-builder
     channel: notifications
-    when:
-      event: tag
     link_names: true
     template: |
       {{#success build.status}}
