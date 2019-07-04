@@ -38,7 +38,9 @@ import asyncio
 import zmq
 from matrix_io.proto.malos.v1 import driver_pb2
 from typing import AsyncIterable
+from zmq import auth
 from zmq.asyncio import Context
+from zmq.auth.asyncio import AsyncioAuthenticator
 
 IMU_PORT = 20013
 HUMIDITY_PORT = 20017
@@ -50,16 +52,26 @@ VISION_PORT = 60001
 
 STREAM_PORT = 59999
 
+
 class MalosKeepAliveTimeout(Exception):
     pass
+
 
 class MalosConfigureTimeout(Exception):
     pass
 
+
 class MalosDriver(object):
     """ Coroutine based MALOS manager """
 
-    def __init__(self, address: str, base_port: int):
+    def __init__(
+        self,
+        address: str,
+        base_port: int,
+        public_key: bytes = None,
+        secret_key: bytes = None,
+        server_key: bytes = None,
+    ):
         """
         Constructor
 
@@ -67,6 +79,9 @@ class MalosDriver(object):
             address: IP address of the device exposing the MALOS 0MQ sockets
             base_port: MALOS base port to use, see list of base ports above.
             config_proto: a driver.proto containing configuration for the driver
+            public_key: Client public key.
+            secret_key: Client private key.
+            server_key: Server public key.
         """
         self.address = address
         self.base_port = base_port
@@ -74,7 +89,6 @@ class MalosDriver(object):
         # 0MQ context
         self.ctx = Context.instance()
         self.logger = logging.getLogger(__name__)
-        
 
         # How long to hold pending messages in memory after
         # closing a socket (in milliseconds).
@@ -82,7 +96,23 @@ class MalosDriver(object):
         # when destroyed.
         self.ctx.setsockopt(zmq.LINGER, 0)
 
-    async def configure(self, config_proto: driver_pb2.DriverConfig, timeout: int = 5) -> None:
+        if public_key and secret_key and server_key:
+            # Enable curve encryption on this context
+            self.logger.debug("Curve encryption enabled.")
+
+            self.auth = AsyncioAuthenticator(self.ctx)
+
+            self.auth.configure_curve("*", zmq.auth.CURVE_ALLOW_ANY)
+
+            self.auth.start()
+
+            self.ctx.setsockopt(zmq.CURVE_PUBLICKEY, public_key)
+            self.ctx.setsockopt(zmq.CURVE_SECRETKEY, secret_key)
+            self.ctx.setsockopt(zmq.CURVE_SERVERKEY, server_key)
+
+    async def configure(
+        self, config_proto: driver_pb2.DriverConfig, timeout: int = 5
+    ) -> None:
         """
         MALOS configuration
 
@@ -106,8 +136,10 @@ class MalosDriver(object):
         # Set up socket as a push
         sock = self.ctx.socket(zmq.PUSH)
 
+        sock.setsockopt(zmq.CURVE_SERVER, 0)
+
         # Connect to the config port, same base port
-        sock.connect('tcp://{0}:{1}'.format(self.address, self.base_port))
+        sock.connect("tcp://{0}:{1}".format(self.address, self.base_port))
 
         config_string = config_proto.SerializeToString()
 
@@ -116,8 +148,8 @@ class MalosDriver(object):
         try:
             # Send the configuration
             tracker = await sock.send(config_string, copy=False, track=True)
-           
-            self.logger.debug(':configure: %r seconds timeout' % timeout)
+
+            self.logger.debug(":configure: %r seconds timeout" % timeout)
             # Using asyncio.sleep instead of tracker.wait
             # so that other async tasks can run while it waits
             while timeout > 0:
@@ -127,14 +159,16 @@ class MalosDriver(object):
                 timeout -= 1
 
             if timeout == 0 and not tracker.done:
-                self.logger.debug(':configure: timeout reached')
+                self.logger.debug(":configure: timeout reached")
                 raise MalosConfigureTimeout()
-                
-            self.logger.debug(':configure: %r bytes delivered' % sys.getsizeof(config_string))
+
+            self.logger.debug(
+                ":configure: %r bytes delivered" % sys.getsizeof(config_string)
+            )
         except asyncio.CancelledError:
-            return	
+            return
         finally:
-            self.logger.debug(':configure: socket closed')
+            self.logger.debug(":configure: socket closed")
             sock.close()
 
     async def start_keep_alive(self, delay: int = 5.0, timeout: int = 5.0) -> None:
@@ -156,9 +190,9 @@ class MalosDriver(object):
             Doesn't yield anything
         """
         sock = self.ctx.socket(zmq.REQ)
-        sock.connect('tcp://{0}:{1}'.format(self.address, self.base_port + 1))
+        sock.connect("tcp://{0}:{1}".format(self.address, self.base_port + 1))
 
-        sock.setsockopt(zmq.RCVTIMEO, int(1000*timeout))
+        sock.setsockopt(zmq.RCVTIMEO, int(1000 * timeout))
 
         # If the keep-alive pings stop, MALOS will stop the driver and stop
         # sending updates. Pings are useful to prevent blocked applications
@@ -167,23 +201,22 @@ class MalosDriver(object):
             while True:
                 # An empty string is enough to let the driver know we're still
                 # listening
-                await sock.send_string('')
-                self.logger.debug(':keep-alive: ping')
+                await sock.send_string("")
+                self.logger.debug(":keep-alive: ping")
 
                 await sock.recv_string()
-                self.logger.debug(':keep-alive: pong')
+                self.logger.debug(":keep-alive: pong")
 
                 await asyncio.sleep(delay)
         except zmq.error.Again:
             raise MalosKeepAliveTimeout()
         except asyncio.CancelledError:
-            self.logger.debug(':keep-alive: cancelled')
+            self.logger.debug(":keep-alive: cancelled")
             # re-raise CancelledError
             raise
         finally:
-            self.logger.debug(':keep-alive: socked closed')
+            self.logger.debug(":keep-alive: socked closed")
             sock.close()
-
 
     async def get_status(self) -> AsyncIterable[driver_pb2.Status]:
         """
@@ -196,25 +229,24 @@ class MalosDriver(object):
             Status proto
         """
         sock = self.ctx.socket(zmq.SUB)
-        sock.connect('tcp://{0}:{1}'.format(self.address, self.base_port + 2))
+        sock.connect("tcp://{0}:{1}".format(self.address, self.base_port + 2))
 
         # We send an empty message to let it know we're ready
-        sock.setsockopt(zmq.SUBSCRIBE, b'')
+        sock.setsockopt(zmq.SUBSCRIBE, b"")
 
         try:
             while True:
                 msg = await sock.recv_multipart()
                 status = driver_pb2.Status().FromString(msg[0])
-                self.logger.debug(':status-port: %s' % status)
+                self.logger.debug(":status-port: %s" % status)
                 yield status
         except asyncio.CancelledError:
-            self.logger.debug(':status-port: cancelled')
+            self.logger.debug(":status-port: cancelled")
             # Exit gracefully when cancelled
             return
         finally:
-            self.logger.debug(':status-port: socked closed')
+            self.logger.debug(":status-port: socked closed")
             sock.close()
-
 
     async def get_data(self) -> AsyncIterable[bytes]:
         """
@@ -227,22 +259,22 @@ class MalosDriver(object):
             Data protobuf sent by MALOS.
         """
         sock = self.ctx.socket(zmq.SUB)
-        sock.connect('tcp://{0}:{1}'.format(self.address, self.base_port + 3))
+        sock.connect("tcp://{0}:{1}".format(self.address, self.base_port + 3))
 
         # We send an empty message to let it know we're ready
-        sock.setsockopt(zmq.SUBSCRIBE, b'')
+        sock.setsockopt(zmq.SUBSCRIBE, b"")
 
         try:
             while True:
                 msg = await sock.recv_multipart()
-                self.logger.debug(':data-port: %s' % msg)
+                self.logger.debug(":data-port: %s" % msg)
                 yield msg[0]
         except asyncio.CancelledError:
-            self.logger.debug(':data-port: cancelled')
+            self.logger.debug(":data-port: cancelled")
             # Exit gracefully when cancelled
             return
         finally:
-            self.logger.debug(':data-port: socked closed')
+            self.logger.debug(":data-port: socked closed")
             sock.close()
 
     async def get_frame(self) -> AsyncIterable[bytes]:
@@ -259,21 +291,20 @@ class MalosDriver(object):
             Raw frame sent by MALOS.
         """
         sock = self.ctx.socket(zmq.SUB)
-        sock.connect('tcp://{0}:{1}'.format(self.address, STREAM_PORT))
+        sock.connect("tcp://{0}:{1}".format(self.address, STREAM_PORT))
 
         # We send an empty message to let it know we're ready
-        sock.setsockopt(zmq.SUBSCRIBE, b'')
+        sock.setsockopt(zmq.SUBSCRIBE, b"")
 
         try:
             while True:
                 msg = await sock.recv_multipart()
-                self.logger.debug(':stream-port: %s' % msg)
+                self.logger.debug(":stream-port: %s" % msg)
                 yield msg[0]
         except asyncio.CancelledError:
-            self.logger.debug(':stream-port: cancelled')
+            self.logger.debug(":stream-port: cancelled")
             # Exit gracefully when cancelled
             return
         finally:
-            self.logger.debug(':stream-port: socked closed')
+            self.logger.debug(":stream-port: socked closed")
             sock.close()
-

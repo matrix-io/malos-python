@@ -13,6 +13,9 @@ Options:
   --version                   Show version.
   --driver-config-file=PATH   Serialized driver config protobuf file to load.
   --loglevel=LEVEL            Desired loglevel output.
+  --public-key-path=VAL       Client public key path.
+  --secret-key-path=VAL       Client private key path.
+  --server-key-path=VAL       Server public key path.
 
 MALOS Drivers (base Ports):
 
@@ -48,14 +51,15 @@ from matrix_io.proto.malos.v1 import sense_pb2, io_pb2
 from matrix_io.proto.vision.v1 import vision_pb2
 
 from matrix_io.malos import driver
+
 """ Driver to proto message mappings """
 DRIVER_PROTOS = {
-    'HUMIDITY': sense_pb2.Humidity(),
-    'IMU': sense_pb2.Imu(),
-    'MICARRAY_ALSA': io_pb2.MicArrayParams(),
-    'PRESSURE': sense_pb2.Pressure(),
-    'UV': sense_pb2.UV(),
-    'VISION': vision_pb2.VisionResult()
+    "HUMIDITY": sense_pb2.Humidity(),
+    "IMU": sense_pb2.Imu(),
+    "MICARRAY_ALSA": io_pb2.MicArrayParams(),
+    "PRESSURE": sense_pb2.Pressure(),
+    "UV": sense_pb2.UV(),
+    "VISION": vision_pb2.VisionResult(),
 }
 
 
@@ -73,11 +77,15 @@ async def data_handler(malos_driver, driver_name):
     async for data in malos_driver.get_data():
         proto_msg = DRIVER_PROTOS[driver_name].FromString(data)
 
-        if driver_name == 'MICARRAY_ALSA':
-            print('Azimuthal angle (deg): {}'.format(
-                proto_msg.azimutal_angle * 180.0 / math.pi))
-            print('Polar angle (deg): {}'.format(
-                proto_msg.polar_angle * 180.0 / math.pi))
+        if driver_name == "MICARRAY_ALSA":
+            print(
+                "Azimuthal angle (deg): {}".format(
+                    proto_msg.azimutal_angle * 180.0 / math.pi
+                )
+            )
+            print(
+                "Polar angle (deg): {}".format(proto_msg.polar_angle * 180.0 / math.pi)
+            )
         else:
             print(proto_msg)
 
@@ -103,7 +111,7 @@ async def status_handler(malos_driver):
         driver_pb2.Status.STATUS_ERROR: "Error log",
         driver_pb2.Status.STATUS_WARNING: "Warning log",
         driver_pb2.Status.STATUS_INFO: "Info log",
-        driver_pb2.Status.STATUS_DEBUG: "Debug log"
+        driver_pb2.Status.STATUS_DEBUG: "Debug log",
     }
 
     async for msg in malos_driver.get_status():
@@ -129,21 +137,22 @@ def main():
 
     # Driver configuration
     driver_config = driver_pb2.DriverConfig()
-    driver_name = options['<driver>'].upper()
+    driver_name = options["<driver>"].upper()
 
     # Sanity check on driver
     try:
-        driver_port = getattr(driver, '{}_PORT'.format(driver_name))
+        driver_port = getattr(driver, "{}_PORT".format(driver_name))
     except AttributeError:
         print(
             "Driver '%s' is not valid, try any of: IMU, HUMIDITY, PRESSURE,"
-            " UV, MICARRAY_ALSA" % options['<driver>'],
-            file=sys.stderr)
+            " UV, MICARRAY_ALSA" % options["<driver>"],
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     # Sanity checks on driver config
     try:
-        update_delay = float(options['--update-delay'])
+        update_delay = float(options["--update-delay"])
     except ValueError:
         print("Invalid --update-delay value. Try something like 1.3")
         sys.exit(1)
@@ -152,7 +161,7 @@ def main():
         driver_config.delay_between_updates = update_delay
 
     try:
-        keepalive_timeout = float(options['--keepalive-timeout'])
+        keepalive_timeout = float(options["--keepalive-timeout"])
     except ValueError:
         print("Invalid --keepalive-delay value. Try something like 8.0")
         sys.exit(1)
@@ -160,11 +169,11 @@ def main():
         # Stop sending updates if there is no ping for 10 seconds
         driver_config.timeout_after_last_ping = keepalive_timeout
 
-    if options['--driver-config-file'] is not None:
+    if options["--driver-config-file"] is not None:
         try:
             file_content = open(
-                os.path.expanduser(options['--driver-config-file']),
-                'rb').read()
+                os.path.expanduser(options["--driver-config-file"]), "rb"
+            ).read()
         # @TODO (heitorgo, maciekrb) let's improve for specific exceptions here
         except Exception as err:
             print("Failed to load driver config file.", file=sys.stderr)
@@ -173,19 +182,38 @@ def main():
             driver_config.ParseFromString(file_content)
 
     # Logging configuration
-    if options['--loglevel']:
-        numeric_level = getattr(logging, options['--loglevel'].upper(), None)
+    if options["--loglevel"]:
+        numeric_level = getattr(logging, options["--loglevel"].upper(), None)
         if not isinstance(numeric_level, int):
-            logging.error('Invalid --loglevel: %s', options['--loglevel'])
+            logging.error("Invalid --loglevel: %s", options["--loglevel"])
             raise SystemExit(1)
 
-        logging.basicConfig(format='%(asctime)s %(message)s', level=numeric_level)
+        logging.basicConfig(format="%(asctime)s %(message)s", level=numeric_level)
 
+    if options.get("--public-key-path", None):
+        with open(options["--public-key-path"], "rb") as f:
+            public_key = f.read()
+    else:
+        public_key = None
 
-    malos_driver = driver.MalosDriver(options['--malos-host'], driver_port)
+    if options.get("--secret-key-path", None):
+        with open(options["--secret-key-path"], "rb") as f:
+            secret_key = f.read()
+    else:
+        secret_key = None
+
+    if options.get("--server-key-path", None):
+        with open(options["--server-key-path"], "rb") as f:
+            server_key = f.read()
+    else:
+        server_key = None
+
+    malos_driver = driver.MalosDriver(
+        options["--malos-host"], driver_port, public_key, secret_key, server_key
+    )
 
     loop = asyncio.get_event_loop()
-    
+
     # Schedule tasks
     loop.run_until_complete(malos_driver.configure(driver_config))
     loop.create_task(malos_driver.start_keep_alive())
@@ -194,7 +222,7 @@ def main():
     try:
         loop.run_forever()
     except KeyboardInterrupt:
-        print('Shutting down. Bye, bye !', file=sys.stderr)
+        print("Shutting down. Bye, bye !", file=sys.stderr)
     finally:
         loop.stop()
         asyncio.gather(*asyncio.Task.all_tasks()).cancel()
